@@ -3,10 +3,12 @@ public class LeakyApp {
 	public static void main (String[] args) {
 		
 		LeakyApp app = new LeakyApp();
+		Pair pair = new Pair();
 		String data = app.source();
-		String formatted = "Data: " + data;
+		pair.key = "jsmith";
+		pair.value = data;
 		app.sink(data);
-		app.sink(formatted);
+		app.sink(pair.value);
 
 	}
 

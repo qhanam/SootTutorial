@@ -19,7 +19,7 @@ public class SootDemo {
 		 * method body in our sample application. */
 		
 		String[] args = new String[]{ 
-			"-cp", "tst/input/:/Library/Java/JavaVirtualMachines/jdk1.8.0_45.jdk/Contents/Home/jre/lib/rt.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_45.jdk/Contents/Home/jre/lib/jce.jar",
+			"-cp", "input/:/Library/Java/JavaVirtualMachines/jdk1.8.0_45.jdk/Contents/Home/jre/lib/rt.jar:/Library/Java/JavaVirtualMachines/jdk1.8.0_45.jdk/Contents/Home/jre/lib/jce.jar",
 			"-f", "J",
 			"-O",
 			"-p", "jb", "use-original-names:true",

@@ -17,7 +17,7 @@ import soot.toolkits.scalar.ForwardFlowAnalysis;
 /**
  * Performs an intra-procedural taint analysis.
  */
-public class TaintAnalysis extends ForwardFlowAnalysis<Unit, Set<Value>> {
+public class TaintAnalysis extends ForwardFlowAnalysis<Unit, Set<String>> {
 	
 	private static final List<String> SOURCES = Arrays.asList(new String[] {"<LeakyApp: java.lang.String source()>"});
 
@@ -38,8 +38,8 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, Set<Value>> {
 	}
 	
 	@Override
-	protected void flowThrough(Set<Value> in, Unit d, Set<Value> out) {
-
+	protected void flowThrough(Set<String> in, Unit d, Set<String> out) {
+		
 		/* Copy the taint information into the output set. */
 		out.addAll(in);
 
@@ -52,19 +52,19 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, Set<Value>> {
 	}
 
 	@Override
-	protected Set<Value> newInitialFlow() {
-		return new HashSet<Value>();
+	protected Set<String> newInitialFlow() {
+		return new HashSet<String>();
 	}
 
 	@Override
-	protected void merge(Set<Value> in1, Set<Value> in2, Set<Value> out) {
+	protected void merge(Set<String> in1, Set<String> in2, Set<String> out) {
 		/* We use union as our confluence operator. */
 		out.addAll(in1);
 		out.addAll(in2);
 	}
 
 	@Override
-	protected void copy(Set<Value> source, Set<Value> dest) {
+	protected void copy(Set<String> source, Set<String> dest) {
 		dest.addAll(source);
 	}
 
@@ -72,17 +72,18 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, Set<Value>> {
 	 * @param expression The RHS of an assignment.
 	 * @return true if one of the value uses in the expression are tainted.
 	 */
-	private boolean isTainted(Set<Value> in, Value expression) {
+	private boolean isTainted(Set<String> in, AbstractDefinitionStmt assignment) {
 
 		/* Check if we are getting a new source. */
+		Value expression = assignment.rightBox.getValue();
 		if(expression instanceof AbstractInvokeExpr) {
 			AbstractInvokeExpr invoke = (AbstractInvokeExpr)expression;
 			if(SOURCES.contains(invoke.getMethod().toString())) return true;
 		}
 		
 		/* Check if we are using a tainted value. */
-		for(ValueBox use : expression.getUseBoxes()) {
-			if(in.contains(use.getValue())) return true;
+		for(ValueBox use : assignment.getUseBoxes()) {
+			if(in.contains(use.getValue().toString())) return true;
 		}
 		
 		return false;
@@ -92,20 +93,20 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, Set<Value>> {
 	/**
 	 * Taint the variable/field if it is assigned a tainted value.
 	 */
-	private void taint (Set<Value> out, Unit d) {
+	private void taint (Set<String> out, Unit d) {
 
 		/* Is this an assignment? If it is, check if the RHS is a source. 
 		 * Because Soot is polymorphic, we do this by checking class type. */
 		if(d instanceof AbstractDefinitionStmt) {
-
-			AbstractDefinitionStmt assignment = (AbstractDefinitionStmt) d;
 			
-			if(isTainted(out, assignment.rightBox.getValue())) {
+			AbstractDefinitionStmt assignment = (AbstractDefinitionStmt) d;
+
+			if(isTainted(out, assignment)) {
 
 				/* Generate a taint label for this variable. */
 				Value lhs = assignment.leftBox.getValue();
 				System.out.println("Tainting " + lhs + " at line " + d.getJavaSourceStartLineNumber() + ".");
-				out.add(lhs);
+				out.add(lhs.toString());
 
 			}
 			
@@ -116,7 +117,7 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, Set<Value>> {
 	/**
 	 * Generate an alert if we are using a tainted value in a sink.
 	 */
-	private void searchSinkValues(Set<Value> in, Unit d) {
+	private void searchSinkValues(Set<String> in, Unit d) {
 		
 		for(ValueBox use : d.getUseBoxes()) {
 
@@ -127,7 +128,7 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, Set<Value>> {
 					System.out.println("Searching sink " + invoke.getMethod() + " for tainted arguments.");
 					
 					for(Value arg : invoke.getArgs()) {
-						if(in.contains(arg)) System.out.println("ALERT: Leak detected for " + arg + " at line " + d.getJavaSourceStartLineNumber() + "!");
+						if(in.contains(arg.toString())) System.out.println("ALERT: Leak detected for " + arg + " at line " + d.getJavaSourceStartLineNumber() + "!");
 					}
 					
 				}
