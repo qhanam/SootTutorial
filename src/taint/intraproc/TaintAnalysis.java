@@ -19,7 +19,17 @@ import soot.toolkits.scalar.ForwardFlowAnalysis;
  */
 public class TaintAnalysis extends ForwardFlowAnalysis<Unit, Set<String>> {
 	
-	private static final List<String> SOURCES = Arrays.asList(new String[] {"<LeakyApp: java.lang.String source()>"});
+	private static final List<String> SOURCES = Arrays.asList(
+			new String[] {"<LeakyApp: java.lang.String source()>",
+						  "<AliasedLeakyApp: java.lang.String source()>",
+						  "<InterproceduralLeakyApp: java.lang.String source()>"}
+			);
+
+	private static final List<String> SINKS = Arrays.asList(
+			new String[] {"<LeakyApp: void sink(java.lang.String)>",
+						  "<AliasedLeakyApp: void sink(java.lang.String)>",
+						  "<InterproceduralLeakyApp: void sink(java.lang.String)>"}
+			);
 
 	/**
 	 * 
@@ -28,12 +38,6 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, Set<String>> {
 	 */
 	public TaintAnalysis(UnitGraph graph) {
 		super(graph);
-
-		/* Before we perform our taint analysis, we can do an alias analysis 
-		 * and cache the results. */
-//		LocalMayAliasAnalysis lmaa;
-
-		/* Run the analysis. */
 		doAnalysis();
 	}
 	
@@ -115,26 +119,31 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, Set<String>> {
 	}
 	
 	/**
-	 * Generate an alert if we are using a tainted value in a sink.
+	 * Look at all var/field uses for tainted values.
 	 */
 	private void searchSinkValues(Set<String> in, Unit d) {
 		
-		for(ValueBox use : d.getUseBoxes()) {
+		for(ValueBox use : d.getUseBoxes())
+			genTaintedSinkAlert(in, use, d.getJavaSourceStartLineNumber());
 
-			if(use instanceof InvokeExprBox) {
-				AbstractInvokeExpr invoke = (AbstractInvokeExpr)use.getValue();
+	}
 
-				if(invoke.getMethod().toString().equals("<LeakyApp: void sink(java.lang.String)>")) {
-					System.out.println("Searching sink " + invoke.getMethod() + " for tainted arguments.");
-					
-					for(Value arg : invoke.getArgs()) {
-						if(in.contains(arg.toString())) System.out.println("ALERT: Leak detected for " + arg + " at line " + d.getJavaSourceStartLineNumber() + "!");
-					}
-					
-				}
+	/**
+	 * Generate an alert if we are using a tainted value in a sink.
+	 */
+	private void genTaintedSinkAlert(Set<String> in, ValueBox use, int line) {
+		
+		if(!(use instanceof InvokeExprBox)) return;
 
+		AbstractInvokeExpr invoke = (AbstractInvokeExpr)use.getValue();
+
+		if(SINKS.contains(invoke.getMethod().toString())) {
+			System.out.println("Searching sink " + invoke.getMethod() + " for tainted arguments.");
+			
+			for(Value arg : invoke.getArgs()) {
+				if(in.contains(arg.toString())) System.out.println("ALERT: Leak detected for " + arg + " at line " + line + "!");
 			}
-	
+			
 		}
 
 	}
