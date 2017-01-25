@@ -67,31 +67,26 @@ public class TaintAnalysis extends ForwardFlowAnalysis<Unit, Set<String>> {
 	protected void flowThrough(Set<String> in, Unit d, Set<String> out) {
 		
 		/* Copy the taint information into the output set. */
-		out.addAll(in);
 
 		/* Taint the variable/field if it is assigned a tainted value. */
-		genOrKill(out, d);
 		
 		/* Look for sink invocations with tainted values. */
-		searchSinkValues(in, d);
 	
 	}
 
 	@Override
 	protected Set<String> newInitialFlow() {
-		return new HashSet<String>();
+		/* Initialize the lattice elements. */
 	}
 
 	@Override
 	protected void merge(Set<String> in1, Set<String> in2, Set<String> out) {
-		/* Union. */
-		out.addAll(in1);
-		out.addAll(in2);
+		/* Union lattice elements. */
 	}
 
 	@Override
 	protected void copy(Set<String> source, Set<String> dest) {
-		dest.addAll(source);
+		/* Make a copy of the lattice elements. */
 	}
 
 	/**
